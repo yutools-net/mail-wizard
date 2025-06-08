@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mail Wizard - 高機能メールアドレス一括管理ツール</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/site-header.css">
+    <script src="/js/header.js" async></script>
+    <style>
+        :root {
+            --primary-color: #007bff; --secondary-color: #6c757d; --success-color: #28a745; --danger-color: #dc3545;
+            --warning-color: #ffc107; --info-color: #17a2b8; --light-color: #f8f9fa; --dark-color: #343a40;
+            --border-color: #dee2e6; --body-bg: #f8f9fa;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: var(--body-bg); color: var(--dark-color); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 20px auto; background: white; border-radius: 12px; box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-color); overflow: hidden; }
+        .header { padding: 30px 40px; border-bottom: 1px solid var(--border-color); background-color: white; text-align: center; }
+        .header h1 { font-size: 2.2rem; font-weight: 700; color: var(--dark-color); margin-bottom: 10px; }
+        .header h1 .icon { color: var(--primary-color); }
+        .header p { font-size: 1.1rem; color: var(--secondary-color); }
+        .main-content { padding: 30px 40px; }
+        .section { margin-bottom: 35px; }
+        .section:last-child { margin-bottom: 0; }
+        .section h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-color); display: inline-block; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 10px; font-weight: 500; font-size: 1rem; color: #495057; }
+        select, input[type="text"], textarea { width: 100%; padding: 10px 15px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; font-family: 'Menlo', 'Consolas', 'Courier New', monospace; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+        textarea { resize: vertical; padding: 15px; }
+        select { font-family: 'Noto Sans JP', sans-serif; padding: 12px 15px;}
+        select:focus, input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1); }
+        textarea.drag-over { border-color: var(--primary-color); border-style: dashed; box-shadow: 0 0 15px rgba(0, 123, 255, 0.2); }
+        .button-group { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px; }
+        button { padding: 10px 20px; border: 1px solid transparent; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+        .btn-primary { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .btn-primary:hover { background-color: #0069d9; border-color: #0062cc; }
+        .btn-secondary { background-color: #f8f9fa; color: var(--dark-color); border-color: #ced4da; }
+        .btn-secondary:hover { background-color: #e2e6ea; border-color: #dae0e5; }
+        .btn-danger { background-color: var(--danger-color); color: white; border-color: var(--danger-color); }
+        .btn-danger:hover { background-color: #c82333; border-color: #bd2130; }
+        .btn-warning { background-color: var(--warning-color); color: #212529; border-color: var(--warning-color); }
+        .btn-warning:hover { background-color: #e0a800; border-color: #d39e00; }
+        .btn-info { background-color: var(--info-color); color: white; border-color: var(--info-color); }
+        .btn-info:hover { background-color: #138496; border-color: #117a8b; }
+        .stats { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .stat-item { background-color: var(--light-color); color: var(--dark-color); padding: 8px 15px; border-radius: 8px; font-size: 13px; font-weight: 500; border: 1px solid var(--border-color); }
+        .advanced-options { display: none; margin-top: 20px; padding: 20px; background: #fcfcfc; border: 1px dashed var(--border-color); border-radius: 8px; }
+        .advanced-options.show { display: block; }
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        #domainStats { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: center;}
+        #domainChartContainer { position: relative; max-width: 300px; margin: 0 auto; }
+        #domainTableContainer h4 { margin-bottom: 10px; font-weight: 500; }
+        #domainTableContainer table { width: 100%; border-collapse: collapse; }
+        #domainTableContainer th, #domainTableContainer td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; vertical-align: middle;}
+        #domainTableContainer th { font-weight: 500; }
+        .btn-domain-copy { padding: 4px 10px; font-size: 12px; background-color: var(--secondary-color); color: white; border-color: var(--secondary-color); }
+        .btn-domain-copy:hover { background-color: var(--dark-color); border-color: var(--dark-color); }
+        .format-group { margin-top: 20px; padding: 20px; background-color: #f0f7ff; border: 1px solid #cce5ff; border-radius: 8px; }
+        .format-group h3 { font-size: 1.1rem; margin-bottom: 15px;}
+        .format-group p { font-size: 13px; color: var(--secondary-color); margin-top: 10px; line-height: 1.6; }
+        .preset-buttons { margin-bottom: 15px; }
+        .preset-buttons button { font-size: 12px; padding: 6px 12px; }
+        .format-preview { margin-top: 15px; padding: 10px; background-color: white; border: 1px dashed var(--border-color); border-radius: 5px; font-size: 13px; font-family: 'Menlo', 'Consolas', 'Courier New', monospace; word-wrap: break-word; }
+        .format-preview strong { font-weight: 500; color: var(--dark-color); }
+        .accordion-guide { margin-bottom: 30px; border: 1px solid var(--border-color); border-radius: 8px; background-color: #fff; }
+        .accordion-item { border-bottom: 1px solid var(--border-color); }
+        .accordion-item:last-child { border-bottom: none; }
+        .accordion-header { width: 100%; background-color: #f8f9fa; border: none; padding: 15px 20px; text-align: left; font-size: 1.1rem; font-weight: 500; color: var(--primary-color); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .accordion-header:hover { background-color: #e9ecef; }
+        .accordion-icon { font-size: 1.2rem; transition: transform 0.3s ease; }
+        .accordion-header.active .accordion-icon { transform: rotate(45deg); }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background-color: white; }
+        .accordion-content-inner { padding: 20px; font-size: 14px; line-height: 1.7; color: #495057; }
+        .accordion-content-inner ul { list-style-position: inside; padding-left: 10px; margin-top: 10px; margin-bottom: 10px;}
+        .accordion-content-inner code { background-color: #e9ecef; padding: 2px 5px; border-radius: 4px; font-family: 'Menlo', 'Consolas', 'Courier New', monospace; }
+        .conversion-tool { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap;}
+        .conversion-tool select { flex-grow: 1; }
+        .conversion-tool button { flex-shrink: 0; }
+        #outputText { background-color: #fff; min-height: 200px; white-space: pre-wrap; word-wrap: break-word; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; font-family: 'Menlo', 'Consolas', 'Courier New', monospace; line-height: 1.5; overflow-y: auto; }
+        .output-line.warning-domain { color: var(--danger-color); font-weight: bold; }
+        .output-line.warning-prefix { color: #fd7e14; }
+        .output-line.warning-typo { color: #856404; font-style: italic; }
+        #warningBox { display: none; padding: 15px; margin-bottom: 15px; border-radius: 8px; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; font-weight: 500; }
+        #warningBox ul { list-style-position: inside; margin-top: 10px; }
+        #warningBox .typo-fix-btn { margin-left: 10px; font-size: 12px; padding: 2px 8px; }
+        #smartParseNotice { display: none; padding: 15px; margin-bottom: 15px; border-radius: 8px; background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460;}
+        .recipe-group .button-group { justify-content: flex-start; }
+        .recipe-list-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
+        @media (max-width: 992px) { #domainStats { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            body { padding: 10px; } .container { margin: 10px auto; } .header { padding: 25px; } .main-content { padding: 20px; } .header h1 { font-size: 1.8rem; }
+            .button-group { flex-direction: column; } button { width: 100%; }
+            .recipe-group .button-group, .preset-buttons { flex-direction: row; } .recipe-group .button-group button, .preset-buttons button { width: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div id="header-placeholder"></div>
+    <div class="container">
+        <header class="header">
+            <h1><span class="icon">🧙‍♂️</span> Mail Wizard</h1>
+            <p>高機能メールアドレス一括管理＆整形ツール</p>
+        </header>
+
+        <main class="main-content">
+             <section class="accordion-guide">
+                <div class="accordion-item">
+                    <button class="accordion-header"><span>✨ 主な機能ハイライト</span><span class="accordion-icon">+</span></button>
+                    <div class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <p>Mail Wizardはさらに強力に進化しました！</p>
+                            <ul>
+                                <li><strong>スマート入力解析:</strong> CSVやExcelからコピーした `名前,メール` 形式のデータを貼り付けると、自動で解釈して取り込みます。</li>
+                                <li><strong>レシピ機能:</strong> 一連の操作（重複削除→名前抽出→カナ変換など）を「レシピ」として保存し、ワンクリックで再現できます。</li>
+                                <li><strong>タイプミス検出＆修正:</strong> `gmai.com`のようなドメインの打ち間違いを検出し、ボタン一つで修正できます。</li>
+                                <li><strong>カスタムフィルター:</strong> 自分だけのNGドメインやNGプレフィックスを「詳細設定」から登録できます。</li>
+                                <li><strong>セッション保存:</strong> ページをリロードしても入力欄の内容が消えません。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>📖 Mail Wizardの使い方</span>
+                        <span class="accordion-icon">+</span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <p>このツールは、メールアドレスリストを様々な形式に一括で変換・整形するためのものです。</p>
+                            <ul>
+                                <li><strong>入力:</strong> 左上の入力欄に、メールアドレスのリストを貼り付けます。</li>
+                                <li><strong>処理:</strong> 「処理を選択」セクションのボタンを押し、好きな形式に変換します。</li>
+                                <li><strong>結果:</strong> 下の「処理結果」欄に整形されたリストが出力されます。コピーやファイル保存も可能です。</li>
+                            </ul>
+                            <p>各機能の詳細は、下の項目を開いてご確認ください。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>⚙️ 詳細設定とソート機能について</span>
+                        <span class="accordion-icon">+</span>
+                    </button>
+                     <div class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <p>「詳細設定」では、処理の前に行う共通のルールを設定できます。</p>
+                            <ul>
+                                <li><strong>ソート順:</strong> 処理結果をメールアドレスや名前のアルファベット順に並べ替えます。</li>
+                                <li><strong>重複削除:</strong> 同じメールアドレスが複数ある場合、一つにまとめます。</li>
+                                <li><strong>無効な形式を除外:</strong> <code>@</code> がないなど、明らかにメールアドレスの形式でないものを除外します。</li>
+                                <li><strong>カスタムフィルター:</strong> 自分だけのNGリスト（ドメイン、プレフィックス）を追加できます。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>🪄 カスタムフォーマット機能とは？</span>
+                        <span class="accordion-icon">+</span>
+                    </button>
+                     <div class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <p>決まった形式だけでなく、あなただけのオリジナルフォーマットを作成できる機能です。</p>
+                            <p><code>{name}</code>, <code>{email}</code>, <code>{lastName}</code> (姓), <code>{firstName}</code> (名) という「プレースホルダー」を使い、自由な文字列と組み合わせることができます。</p>
+                            <ul>
+                                <li><strong>例1:</strong> テンプレートに <code>{email} ({name})</code> と入力 → <code>tanaka@example.com (田中 太郎)</code> の形式で出力されます。（名前がない行は <code>email@example.com ()</code> のようになります）</li>
+                                <li><strong>例2:</strong> テンプレートに <code>【氏名】{lastName} 【メール】{email}</code> と入力 → <code>【氏名】田中 【メール】tanaka@example.com</code> の形式で出力されます。</li>
+                            </ul>
+                            <p>プリセットボタンやリアルタイムプレビューを活用して、ぜひ色々なフォーマットをお試しください！</p>
+                        </div>
+                    </div>
+                </div>
+                 <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>📊 ドメイン統計機能</span>
+                        <span class="accordion-icon">+</span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <p>処理結果の下に表示される円グラフと表は、入力されたメールアドレスのドメイン（<code>@</code>以降の部分）を集計したものです。</p>
+                            <ul>
+                                <li>どのドメインのメールアドレスがどれくらいの割合を占めているか、一目で確認できます。</li>
+                                <li>表の右側にある「コピー」ボタンを押すと、そのドメインのメールアドレスだけをまとめてコピーできます。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>🔒 プライバシーについて</span>
+                        <span class="accordion-icon">+</span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="accordion-content-inner">
+                            <p>このツールは、すべての処理をあなたのブラウザ内で完結させます。入力されたメールアドレスやその他のデータが、開発者を含む外部のサーバーに送信・保存されることは一切ありません。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="section">
+                <h2>1. メールアドレス入力</h2>
+                <div id="smartParseNotice"></div>
+                <div class="input-group">
+                    <label for="inputText">一覧を貼り付けるか、ファイルをドラッグ＆ドロップしてください (CSV/TSV貼り付け対応):</label>
+                    <textarea id="inputText" rows="10" placeholder="例：田中太郎 <tanaka@example.com>..."></textarea>
+                </div>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="toggleAdvanced()">⚙️ 詳細設定の表示/非表示</button>
+                    <button class="btn-danger" onclick="clearInput()">🗑️ すべてクリア</button>
+                    <button class="btn-secondary" onclick="loadSampleData()">📋 サンプル入力</button>
+                </div>
+                <div id="advancedOptions" class="advanced-options show">
+                    <h3>詳細設定</h3>
+                    <div class="settings-grid">
+                        <div class="input-group">
+                            <label for="sortOrder">ソート順</label>
+                            <select id="sortOrder">
+                                <option value="none">ソートしない</option>
+                                <option value="email_asc">メールアドレス (A→Z)</option>
+                                <option value="name_asc">名前 (A→Z)</option>
+                            </select>
+                        </div>
+                         <div class="input-group">
+                            <label>基本オプション</label>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="display: flex; align-items: center; gap: 8px;"><input type="checkbox" id="removeDuplicates" checked><label for="removeDuplicates">重複したアドレスを削除</label></div>
+                                <div style="display: flex; align-items: center; gap: 8px;"><input type="checkbox" id="validateEmails" checked><label for="validateEmails">無効な形式のアドレスを除外</label></div>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="customSpamDomains">カスタムNGドメイン (改行区切り)</label>
+                            <textarea id="customSpamDomains" rows="3" placeholder="example.net
+block-this.com"></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label for="customNgPrefixes">カスタムNGプレフィックス (改行区切り, @含む)</label>
+                            <textarea id="customNgPrefixes" rows="3" placeholder="billing@
+invoice@"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>2. 基本処理</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="runAndRecord('extractEmails')">📧 メールアドレスのみ抽出</button>
+                    <button class="btn-primary" onclick="runAndRecord('extractNames')">👤 名前のみ抽出</button>
+                    <button class="btn-primary" onclick="runAndRecord('extractBoth')">📋 名前とアドレスを抽出</button>
+                </div>
+                <div class="format-group">
+                    <h3>🪄 カスタムフォーマット</h3>
+                    <p>
+                        プレースホルダー: <code>{email}</code>, <code>{name}</code>, <code>{lastName}</code> (姓), <code>{firstName}</code> (名)
+                    </p>
+                    <div class="preset-buttons button-group">
+                        <button class="btn-secondary" onclick="setCustomTemplate('{email} ({name})')">メルアド (名前)</button>
+                        <button class="btn-secondary" onclick="setCustomTemplate('{name} <{email}>')">名前 <メルアド></button>
+                        <button class="btn-secondary" onclick="setCustomTemplate('{lastName}様 <{email}>')">姓様 <メルアド></button>
+                    </div>
+                    <div class="input-group">
+                        <label for="customFormatInput">フォーマットテンプレート:</label>
+                        <input type="text" id="customFormatInput" placeholder="例: {email} ({lastName} {firstName})">
+                    </div>
+                    <div class="format-preview"><strong>プレビュー:</strong> <span id="formatPreviewOutput">テンプレートを入力してください</span></div>
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="runAndRecord('applyCustomFormat')">📝 このカスタムフォーマットを適用</button>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="section">
+                <h2>3. レシピ（連続処理）</h2>
+                <p style="font-size: 13px; color: var(--secondary-color); margin-bottom: 20px;">
+                    ※設定やレシピは、お使いのブラウザ内（ローカルストレージ）にのみ保存されます。他のPCやブラウザとは共有されません。
+                </p>
+                <div class="format-group recipe-group" style="background-color: #fdf8e6;">
+                    <p>一連の操作を「レシピ」として保存し、ワンクリックで実行できます。</p>
+                    <div class="button-group">
+                        <button id="recordBtn" class="btn-info" onclick="toggleRecording()">⏺️ 記録開始</button>
+                        <button class="btn-secondary" onclick="saveRecipe()">💾 現在のレシピを保存</button>
+                    </div>
+                    <div class="input-group" style="margin-top: 20px;">
+                        <label for="recipeList">保存したレシピ:</label>
+                        <select id="recipeList"></select>
+                    </div>
+                     <div class="button-group">
+                        <button class="btn-warning" onclick="runRecipe()">▶️ 選択したレシピを実行</button>
+                        <button class="btn-danger" onclick="deleteRecipe()">🗑️ 選択したレシピを削除</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>4. フォーマット補正＆変換</h2>
+                <p style="font-size: 14px; color: var(--secondary-color); margin-bottom: 20px;">※下のツールは、「処理結果」欄のテキストを直接整形・変換します。</p>
+                <div class="format-group" style="background-color: #f0f7ff;">
+                    <h3>名前の補正</h3>
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="runAndRecord('capitalizeNames')">姓名の頭文字を大文字に (abc→Abc)</button>
+                        <button class="btn-secondary" onclick="runAndRecord('removeSpaces')">すべてのスペースを削除</button>
+                        <button class="btn-secondary" onclick="runAndRecord('convertToFullWidthKana')">半角カナ → 全角カナ</button>
+                        <button class="btn-secondary" onclick="runAndRecord('convertToHalfWidthAlpha')">全角英数 → 半角英数</button>
+                    </div>
+                </div>
+                <div class="format-group" style="background-color: #f8f9fa; margin-top:20px;">
+                    <h3>テキスト全体の変換</h3>
+                    <div class="button-group">
+                         <button class="btn-secondary" onclick="runAndRecord('convertToLowercase')">すべて小文字に変換</button>
+                         <button class="btn-secondary" onclick="runAndRecord('unifyEmailCase', 'lowercase_all')">メルアドを小文字に統一</button>
+                         <button class="btn-secondary" onclick="runAndRecord('convertToHtmlLink')">HTMLリンク (mailto) に変換</button>
+                    </div>
+                     <div class="conversion-tool">
+                        <select id="fromSeparator"><option value="\n">改行</option><option value=",">カンマ (,)</option><option value=";">セミコロン (;)</option><option value=" ">半角スペース</option><option value="\t">タブ</option></select>
+                        <span style="font-weight: bold; font-size: 1.2rem;">→</span>
+                        <select id="toSeparator"><option value="\n">改行</option><option value=",">カンマ (,)</option><option value=";">セミコロン (;)</option><option value=" ">半角スペース</option><option value="\t">タブ</option></select>
+                        <button class="btn-secondary" onclick="runAndRecord('convertSeparators')">区切り文字を変換</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>5. 処理結果</h2>
+                <div id="warningBox"></div>
+                <div class="input-group">
+                    <label for="outputText">結果はこちらに出力されます：</label>
+                    <div id="outputText" class="output-area" readonly></div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="copyToClipboard(this, document.getElementById('outputText').textContent)">📋 すべてコピー</button>
+                    <button id="batchCopyBtn" class="btn-primary" onclick="copyBatch()" style="display: none;">📋 50件ずつコピー</button>
+                    <button class="btn-secondary" onclick="swapInputOutput()">🔄 結果を入力に移動</button>
+                </div>
+                 <div class="button-group">
+                    <button class="btn-secondary" onclick="downloadFile(document.getElementById('outputText').textContent, 'email-list.txt', 'text/plain')">💾 .txtで保存</button>
+                    <button class="btn-secondary" onclick="downloadAsCsv()">💾 .csvで保存</button>
+                    <button class="btn-secondary" onclick="downloadAsJson()">💾 .jsonで保存</button>
+                </div>
+                <div class="stats" id="stats"></div>
+                <div id="domainStats">
+                    <div id="domainChartContainer"><canvas id="domainChart"></canvas></div>
+                    <div id="domainTableContainer"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // --- グローバル変数と定数 ---
+        let processedData = [];
+        let currentBatchIndex = 0;
+        let domainChartInstance = null;
+        let isRecording = false;
+        let currentRecipe = [];
+        const SPAM_DOMAINS = ['temp-mail.org', '10minutemail.com', 'guerrillamail.com', 'mailinator.com', 'getnada.com', 'throwawaymail.com', 'mohmal.com', 'yopmail.com'];
+        const NG_PREFIXES = ['admin@', 'noreply@', 'no-reply@', 'support@', 'info@', 'contact@', 'abuse@', 'postmaster@', 'help@', 'sales@', 'test@', 'demo@'];
+        const TYPO_DOMAINS = { 'gmai.com': 'gmail.com', 'gmal.com': 'gmail.com', 'gmail.con': 'gmail.com', 'gmil.com': 'gmail.com', 'yaho.co.jp': 'yahoo.co.jp', 'yahoo.ne.jp': 'yahoo.co.jp', 'icloud.con': 'icloud.com', 'hotmai.com': 'hotmail.com', 'outlook.con': 'outlook.com' };
+
+        // --- 初期化処理 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            setupDragAndDrop();
+            setupAccordion();
+            setupEventListeners();
+            loadRecipes();
+            const savedInput = localStorage.getItem('yutools-mail-wizard-savedInput');
+            if (savedInput) document.getElementById('inputText').value = savedInput;
+        });
+
+        function setupEventListeners() {
+            const idsToSave = ['removeDuplicates', 'validateEmails', 'sortOrder', 'customSpamDomains', 'customNgPrefixes'];
+            idsToSave.forEach(id => document.getElementById(id).addEventListener('change', saveSettings));
+            
+            document.getElementById('domainTableContainer').addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-domain-copy')) copyDomainEmails(e.target.dataset.domain, e.target);
+            });
+            document.getElementById('customFormatInput').addEventListener('input', updateFormatPreview);
+            
+            const inputText = document.getElementById('inputText');
+            inputText.addEventListener('input', () => localStorage.setItem('yutools-mail-wizard-savedInput', inputText.value));
+            inputText.addEventListener('paste', handlePaste);
+
+            document.getElementById('warningBox').addEventListener('click', (e) => {
+                if (e.target.classList.contains('typo-fix-btn')) {
+                    const original = e.target.dataset.original;
+                    const suggestion = e.target.dataset.suggestion;
+                    fixTypo(original, suggestion);
+                }
+            });
+        }
+
+        // --- UI関連 (アコーディオン、D&D) ---
+        function setupAccordion() { document.querySelectorAll('.accordion-header').forEach(h => h.addEventListener('click', () => { const c = h.nextElementSibling; h.classList.toggle('active'); c.style.maxHeight = c.style.maxHeight ? null : c.scrollHeight + 'px'; })); }
+        function setupDragAndDrop() {
+            const el = document.getElementById('inputText');
+            el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drag-over'); });
+            el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+            el.addEventListener('drop', (e) => {
+                e.preventDefault(); el.classList.remove('drag-over');
+                if (e.dataTransfer.files.length > 0) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => { el.value = ev.target.result; el.dispatchEvent(new Event('input')); };
+                    reader.readAsText(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        // --- 設定の保存・読込 ---
+        function saveSettings() {
+            const settings = {
+                removeDuplicates: document.getElementById('removeDuplicates').checked,
+                validateEmails: document.getElementById('validateEmails').checked,
+                sortOrder: document.getElementById('sortOrder').value,
+                customSpamDomains: document.getElementById('customSpamDomains').value,
+                customNgPrefixes: document.getElementById('customNgPrefixes').value
+            };
+            localStorage.setItem('yutools-mail-wizard-settings', JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem('yutools-mail-wizard-settings'));
+            if (settings) {
+                document.getElementById('removeDuplicates').checked = settings.removeDuplicates !== false;
+                document.getElementById('validateEmails').checked = settings.validateEmails !== false;
+                document.getElementById('sortOrder').value = settings.sortOrder || 'none';
+                document.getElementById('customSpamDomains').value = settings.customSpamDomains || '';
+                document.getElementById('customNgPrefixes').value = settings.customNgPrefixes || '';
+            }
+        }
+
+        // --- スマート入力解析 ---
+        function handlePaste(e) {
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            const lines = pasteData.split('\n').filter(l => l.trim() !== '');
+            if (lines.length < 2) return;
+
+            const separator = lines[0].includes(',') ? ',' : (lines[0].includes('\t') ? '\t' : null);
+            if (!separator) return;
+
+            const columns = lines[0].split(separator).length;
+            if (columns < 2) return;
+
+            let emailCol = -1, nameCol = -1;
+            const firstRow = lines[0].split(separator);
+            for(let i=0; i<columns; i++) {
+                if(validateEmail(firstRow[i].trim())) emailCol = i;
+                else if (firstRow[i].trim().length > 0) nameCol = i;
+            }
+
+            if (emailCol !== -1) {
+                e.preventDefault();
+                const formattedText = lines.map(line => {
+                    const parts = line.split(separator);
+                    const email = (parts[emailCol] || '').trim();
+                    const name = nameCol !== -1 ? (parts[nameCol] || '').trim().replace(/^["']|["']$/g, '') : '';
+                    if (validateEmail(email)) {
+                        return name ? `"${name}" <${email}>` : email;
+                    }
+                    return null;
+                }).filter(Boolean).join('\n');
+                
+                document.getElementById('inputText').value = formattedText;
+                document.getElementById('inputText').dispatchEvent(new Event('input'));
+
+                const notice = document.getElementById('smartParseNotice');
+                notice.textContent = `✅ ${separator === ',' ? 'CSV' : 'TSV'}形式のデータを検出し、自動で整形しました。`;
+                notice.style.display = 'block';
+                setTimeout(() => notice.style.display = 'none', 5000);
+            }
+        }
+        
+        // --- ▼▼▼ データ処理の中核 (ロジック全面見直し) ▼▼▼ ---
+        function parseEmailEntry(entry) {
+            entry = entry.trim();
+            if (!entry) return null;
+
+            const createDataObject = (email, name = '') => {
+                const cleanedName = name.trim().replace(/^["']|["']$/g, '').replace(/[\s<>()\[\]:;,"']+$|^[\s<>()\[\]:;,"']+/g, '').trim();
+                const hasExplicitName = cleanedName.length > 0;
+                const nameParts = hasExplicitName ? cleanedName.split(/[\s　]+/) : [];
+                return {
+                    name: hasExplicitName ? cleanedName : '',
+                    email: email.trim(),
+                    lastName: hasExplicitName ? nameParts[0] || '' : '',
+                    firstName: hasExplicitName ? nameParts.slice(1).join(' ') : '',
+                    hasExplicitName: hasExplicitName
+                };
+            };
+
+            // パターン1: "名前" <メールアドレス> (最優先)
+            const rfcMatch = entry.match(/^(.*?)<(.+?)>$/);
+            if (rfcMatch) {
+                const name = rfcMatch[1];
+                const email = rfcMatch[2];
+                if (validateEmail(email.trim())) {
+                    return createDataObject(email, name);
+                }
+            }
+            
+            // パターン2: メールアドレスを文字列から探し出し、残りを名前にする
+            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+            const emailMatch = entry.match(emailRegex);
+
+            if (emailMatch) {
+                const email = emailMatch[0];
+                const namePart = entry.replace(email, ' ').trim();
+                return createDataObject(email, namePart);
+            }
+            
+            return null; // どのパターンにも一致しない
+        }
+        // --- ▲▲▲ データ処理の中核 (ロジック全面見直し) ▲▲▲ ---
+
+
+        function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase()); }
+        
+        function processInput() {
+            const customSpam = document.getElementById('customSpamDomains').value.split('\n').filter(Boolean);
+            const customPrefixes = document.getElementById('customNgPrefixes').value.split('\n').filter(Boolean);
+            const allSpamDomains = [...SPAM_DOMAINS, ...customSpam];
+            const allNgPrefixes = [...NG_PREFIXES, ...customPrefixes];
+            
+            const entries = document.getElementById('inputText').value.split(/[\n,;]+/).map(e => e.trim()).filter(e => e);
+            let data = [];
+            for (const entry of entries) {
+                let parsed = parseEmailEntry(entry);
+                if (parsed && (!document.getElementById('validateEmails').checked || validateEmail(parsed.email))) {
+                    parsed.originalEmail = parsed.email;
+                    parsed.warnings = [];
+                    const emailLower = parsed.email.toLowerCase();
+                    const domain = emailLower.split('@')[1];
+                    
+                    if (allSpamDomains.includes(domain)) parsed.warnings.push({type: 'domain'});
+                    if (allNgPrefixes.some(p => emailLower.startsWith(p))) parsed.warnings.push({type: 'prefix'});
+                    if (TYPO_DOMAINS[domain]) parsed.warnings.push({type: 'typo', suggestion: parsed.email.replace(domain, TYPO_DOMAINS[domain])});
+                    
+                    data.push(parsed);
+                }
+            }
+            if (document.getElementById('removeDuplicates').checked) {
+                const seen = new Set();
+                data = data.filter(item => {
+                    const key = item.email.toLowerCase();
+                    return seen.has(key) ? false : (seen.add(key), true);
+                });
+            }
+            
+            const sortOrder = document.getElementById('sortOrder').value;
+            if (sortOrder === 'email_asc') data.sort((a, b) => a.email.localeCompare(b.email, 'en'));
+            if (sortOrder === 'name_asc') data.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+            
+            processedData = data;
+            updateFormatPreview();
+            return data;
+        }
+        
+        function fixTypo(original, suggestion) {
+            const inputText = document.getElementById('inputText');
+            inputText.value = inputText.value.replace(new RegExp(original, 'g'), suggestion);
+            inputText.dispatchEvent(new Event('input'));
+            
+            const dataToUpdate = processedData.find(d => d.originalEmail === original);
+            if (dataToUpdate) {
+                dataToUpdate.email = suggestion;
+                dataToUpdate.originalEmail = suggestion;
+                dataToUpdate.warnings = dataToUpdate.warnings.filter(w => w.type !== 'typo');
+            }
+
+            const outputDiv = document.getElementById('outputText');
+            outputDiv.querySelectorAll('.output-line').forEach(lineDiv => {
+                if (lineDiv.textContent.includes(original)) {
+                    lineDiv.textContent = lineDiv.textContent.replace(new RegExp(original, 'g'), suggestion);
+                }
+            });
+
+            updateWarningBox(processedData);
+            updateDomainStats(processedData);
+        }
+        
+        // --- 基本処理 & カスタムフォーマット (ロジック修正) ---
+        function extractEmails() { displayOutput(processInput().map(item => item.email), 'メールアドレス'); }
+        function extractNames() { displayOutput(processInput().filter(item => item.hasExplicitName).map(item => item.name), '名前'); }
+        function extractBoth() { displayOutput(processInput().map(item => item.hasExplicitName ? `${item.name}: ${item.email}` : item.email), '項目'); }
+        function setCustomTemplate(template) { document.getElementById('customFormatInput').value = template; updateFormatPreview(); }
+        
+        function updateFormatPreview() {
+            const template = document.getElementById('customFormatInput').value;
+            const previewSpan = document.getElementById('formatPreviewOutput');
+            if (!template) { previewSpan.textContent = 'テンプレートを入力または選択してください'; return; }
+            const previewData = processedData.length > 0 && processedData.some(d => d.hasExplicitName) 
+                ? processedData.find(d => d.hasExplicitName) 
+                : { name: "山田 太郎", email: "yamada@example.com", lastName: "山田", firstName: "太郎", hasExplicitName: true };
+
+            previewSpan.textContent = template
+                .replace(/{email}/g, previewData.email)
+                .replace(/{name}/g, previewData.hasExplicitName ? previewData.name : '')
+                .replace(/{lastName}/g, previewData.hasExplicitName ? previewData.lastName : '')
+                .replace(/{firstName}/g, previewData.hasExplicitName ? previewData.firstName : '');
+        }
+
+        function applyCustomFormat() {
+            const template = document.getElementById('customFormatInput').value;
+            if (!template) { alert('フォーマットテンプレートを入力してください。'); return; }
+            const data = processInput();
+            const result = data.map(item => {
+                return template
+                    .replace(/{email}/g, item.email)
+                    .replace(/{name}/g, item.hasExplicitName ? item.name : '')
+                    .replace(/{lastName}/g, item.hasExplicitName ? item.lastName : '')
+                    .replace(/{firstName}/g, item.hasExplicitName ? item.firstName : '');
+            });
+            displayOutput(result, 'カスタムフォーマット');
+        }
+
+        // --- 出力と統計表示 ---
+        function displayOutput(dataArray, type) {
+            const outputDiv = document.getElementById('outputText');
+            outputDiv.innerHTML = ''; 
+
+            dataArray.forEach(lineText => {
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'output-line';
+                lineDiv.textContent = lineText;
+                
+                const correspondingData = processedData.find(d => lineText.includes(d.originalEmail));
+                if (correspondingData && correspondingData.warnings.length > 0) {
+                    if (correspondingData.warnings.some(w => w.type === 'domain')) lineDiv.classList.add('warning-domain');
+                    if (correspondingData.warnings.some(w => w.type === 'prefix')) lineDiv.classList.add('warning-prefix');
+                    if (correspondingData.warnings.some(w => w.type === 'typo')) lineDiv.classList.add('warning-typo');
+                }
+                outputDiv.appendChild(lineDiv);
+            });
+
+            updateStats(dataArray.length, type);
+            updateDomainStats(processedData);
+            updateWarningBox(processedData);
+            
+            const btn = document.getElementById('batchCopyBtn');
+            btn.style.display = dataArray.length > 50 ? 'inline-block' : 'none';
+            if (dataArray.length > 50) {
+                currentBatchIndex = 0;
+                btn.textContent = `📋 1-${Math.min(50, dataArray.length)}件をコピー`;
+            }
+        }
+
+        function updateWarningBox(data) {
+            const warningBox = document.getElementById('warningBox');
+            const warnings = { domain: 0, prefix: 0, typo: [] };
+            data.forEach(d => {
+                d.warnings.forEach(w => {
+                    if(w.type === 'typo') warnings.typo.push({original: d.originalEmail, suggestion: w.suggestion});
+                    else warnings[w.type]++;
+                });
+            });
+
+            if (warnings.domain > 0 || warnings.prefix > 0 || warnings.typo.length > 0) {
+                let message = '⚠️ 以下の可能性があるアドレスが検出されました:<ul>';
+                if (warnings.domain > 0) message += `<li><span class="output-line warning-domain">スパム・使い捨ての可能性があるドメイン:</span> ${warnings.domain}件</li>`;
+                if (warnings.prefix > 0) message += `<li><span class="output-line warning-prefix">システムアドレス (返信不可の可能性):</span> ${warnings.prefix}件</li>`;
+                warnings.typo.forEach(t => {
+                    message += `<li><span class="output-line warning-typo">タイプミスの可能性:</span> ${t.original} → ${t.suggestion} <button class="btn-secondary typo-fix-btn" data-original="${t.original}" data-suggestion="${t.suggestion}">修正</button></li>`;
+                });
+                message += '</ul>';
+                warningBox.innerHTML = message;
+                warningBox.style.display = 'block';
+            } else {
+                warningBox.style.display = 'none';
+            }
+        }
+        
+        function updateStats(count, type) { document.getElementById('stats').innerHTML = `<div class="stat-item"><strong>件数:</strong> ${count} ${type}</div> <div class="stat-item"><strong>処理日時:</strong> ${new Date().toLocaleTimeString()}</div>`; }
+        function updateDomainStats(data) {
+            const domainCounts = data.reduce((acc, item) => { const domain = item.email.split('@')[1]; if (domain) { acc[domain] = (acc[domain] || 0) + 1; } return acc; }, {});
+            const sortedDomains = Object.entries(domainCounts).sort(([,a],[,b]) => b-a);
+            const tableContainer = document.getElementById('domainTableContainer');
+            tableContainer.innerHTML = sortedDomains.length > 0 ? '<h4>ドメイン別集計</h4><table><tr><th>ドメイン</th><th>件数</th><th>アクション</th></tr>' + sortedDomains.map(([d, c]) => `<tr><td>${d}</td><td>${c}</td><td><button class="btn-domain-copy" data-domain="${d}">コピー</button></td></tr>`).join('') + '</table>' : '';
+            
+            const chartCanvas = document.getElementById('domainChart');
+            if (domainChartInstance) domainChartInstance.destroy();
+            if (sortedDomains.length > 0) {
+                chartCanvas.style.display = 'block';
+                const labels = sortedDomains.map(item => item[0]);
+                const counts = sortedDomains.map(item => item[1]);
+                domainChartInstance = new Chart(chartCanvas, { type: 'pie', data: { labels, datasets: [{ data: counts, backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6c757d', '#fd7e14', '#6610f2', '#20c997'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: labels.length <= 8, position: 'right' } } } });
+            } else { chartCanvas.style.display = 'none'; }
+        }
+
+        // --- レシピ機能 ---
+        function runAndRecord(funcName, ...args) {
+            if (isRecording) currentRecipe.push([funcName, ...args]);
+            const func = window[funcName];
+            if (typeof func === 'function') func(...args);
+        }
+
+        function toggleRecording() {
+            isRecording = !isRecording;
+            const btn = document.getElementById('recordBtn');
+            if (isRecording) {
+                currentRecipe = [];
+                btn.textContent = '⏹️ 記録停止';
+                btn.classList.replace('btn-info', 'btn-danger');
+            } else {
+                btn.textContent = '⏺️ 記録開始';
+                btn.classList.replace('btn-danger', 'btn-info');
+            }
+        }
+
+        function saveRecipe() {
+            if (currentRecipe.length === 0) { alert('保存する操作がありません。記録を開始して操作を行ってください。'); return; }
+            const name = prompt('このレシピの名前を入力してください:', `レシピ ${new Date().toLocaleString()}`);
+            if (name) {
+                const recipes = JSON.parse(localStorage.getItem('yutools-mail-wizard-recipes') || '{}');
+                recipes[name] = currentRecipe;
+                localStorage.setItem('yutools-mail-wizard-recipes', JSON.stringify(recipes));
+                loadRecipes();
+                if(isRecording) toggleRecording();
+            }
+        }
+        
+        function loadRecipes() {
+            const recipes = JSON.parse(localStorage.getItem('yutools-mail-wizard-recipes') || '{}');
+            const select = document.getElementById('recipeList');
+            select.innerHTML = '';
+            for (const name in recipes) {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            }
+        }
+
+        async function runRecipe() {
+            const select = document.getElementById('recipeList');
+            const name = select.value;
+            if (!name) { alert('実行するレシピを選択してください。'); return; }
+            const recipes = JSON.parse(localStorage.getItem('yutools-mail-wizard-recipes') || '{}');
+            const recipe = recipes[name];
+            if (recipe) {
+                for (const step of recipe) {
+                    const [funcName, ...args] = step;
+                    const func = window[funcName];
+                    if (typeof func === 'function') {
+                        func(...args);
+                        await new Promise(resolve => setTimeout(resolve, 50)); // 処理の間にわずかな待機時間
+                    }
+                }
+            }
+        }
+
+        function deleteRecipe() {
+            const select = document.getElementById('recipeList');
+            const name = select.value;
+            if (!name || !confirm(`「${name}」を削除してもよろしいですか？`)) return;
+            const recipes = JSON.parse(localStorage.getItem('yutools-mail-wizard-recipes') || '{}');
+            delete recipes[name];
+            localStorage.setItem('yutools-mail-wizard-recipes', JSON.stringify(recipes));
+            loadRecipes();
+        }
+        
+        // --- ユーティリティ & 補正機能 ---
+        function copyToClipboard(button, text) { if (!text) return; navigator.clipboard.writeText(text).then(() => { const o = button.textContent; button.textContent = '✅'; if (!button.classList.contains('btn-domain-copy')) { button.style.backgroundColor = 'var(--success-color)'; button.style.borderColor = 'var(--success-color)'; } setTimeout(() => { button.textContent = o; if (!button.classList.contains('btn-domain-copy')) { button.style.backgroundColor = ''; button.style.borderColor = ''; } }, 1500); }); }
+        function copyDomainEmails(domain, button) { const emails = processedData.filter(item => item.email.endsWith('@' + domain)).map(item => item.email); if (emails.length > 0) copyToClipboard(button, emails.join('\n')); }
+        function copyBatch() { const lines = document.getElementById('outputText').textContent.split('\n'); if (lines.length === 0) return; const batchSize = 50; const start = currentBatchIndex * batchSize; const batch = lines.slice(start, start + batchSize); if (batch.length > 0) { copyToClipboard(document.getElementById('batchCopyBtn'), batch.join('\n')); currentBatchIndex = (start + batchSize >= lines.length) ? 0 : currentBatchIndex + 1; const nextStart = currentBatchIndex * batchSize; document.getElementById('batchCopyBtn').textContent = `📋 ${nextStart + 1}-${Math.min(nextStart + batchSize, lines.length)}件をコピー`; } }
+        function downloadFile(content, fileName, mimeType) { if (!content) return; const blob = new Blob([content], { type: `${mimeType};charset=utf-8` }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href); }
+        function downloadAsCsv() {
+            if(processedData.length === 0) return;
+            let csvContent = '"name","email","lastName","firstName"\n';
+            processedData.forEach(item => {
+                const name = item.hasExplicitName ? item.name : '';
+                const lastName = item.hasExplicitName ? item.lastName : '';
+                const firstName = item.hasExplicitName ? item.firstName : '';
+                csvContent += `"${name}","${item.email}","${lastName}","${firstName}"\n`;
+            });
+            downloadFile(csvContent, 'email-list.csv', 'text/csv');
+        }
+        function downloadAsJson() { if(processedData.length === 0) return; downloadFile(JSON.stringify(processedData, null, 2), 'application/json'); }
+        function swapInputOutput() { const outputText = document.getElementById('outputText').textContent; document.getElementById('inputText').value = outputText; document.getElementById('inputText').dispatchEvent(new Event('input')); clearResultArea(); }
+        function clearInput() { document.getElementById('inputText').value = ''; localStorage.removeItem('yutools-mail-wizard-savedInput'); clearResultArea(); }
+        function clearResultArea() { document.getElementById('outputText').innerHTML = ''; document.getElementById('stats').innerHTML = ''; updateDomainStats([]); document.getElementById('batchCopyBtn').style.display = 'none'; document.getElementById('warningBox').style.display = 'none'; processedData = [];}
+        function toggleAdvanced() { document.getElementById('advancedOptions').classList.toggle('show'); }
+        function loadSampleData() { document.getElementById('inputText').value = `"田中 太郎" <tanaka@example.com>, さとう はなこ <sato@example.com>; 山田 次郎 <yamada.jiro@example.co.jp>\nJohn Smith <john.smith@example.com>\nすずき いちろう <suzuki@gmail.com>\nwatanabe@example.co.jp, "たなか みさき" <tanaka.misaki@example.com>\ntanaka@example.com\ninvalid-email-format\n"Sato Hanako" <sato.hanako@gmail.com>\ntakahashi@yahoo.co.jp`; document.getElementById('inputText').dispatchEvent(new Event('input')); }
+
+        function applyToOutput(transformation) {
+            const outputDiv = document.getElementById('outputText');
+            if(!outputDiv.hasChildNodes()) return;
+            outputDiv.querySelectorAll('.output-line').forEach(lineDiv => { lineDiv.textContent = transformation(lineDiv.textContent); });
+        }
+
+        function unifyEmailCase(type) {
+            if(processedData.length === 0) return;
+            processedData.forEach(item => {
+                if (type === 'lowercase_all') item.email = item.email.toLowerCase();
+            });
+            const outputDiv = document.getElementById('outputText');
+            outputDiv.querySelectorAll('.output-line').forEach(lineDiv => {
+                const mailMatch = lineDiv.textContent.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                if (mailMatch) {
+                    lineDiv.textContent = lineDiv.textContent.replace(mailMatch[0], mailMatch[0].toLowerCase());
+                }
+            });
+            updateDomainStats(processedData);
+        }
+        
+        function convertToLowercase() { applyToOutput(line => line.toLowerCase()); }
+        function convertToHtmlLink() { applyToOutput(line => line.trim() ? `<a href="mailto:${line.trim()}">${line.trim()}</a>` : ''); }
+        function convertSeparators() {
+            const outputDiv = document.getElementById('outputText');
+            if (!outputDiv.hasChildNodes()) return;
+            const getRealSeparator = val => ({'\\n': '\n', '\\t': '\t'})[val] || val;
+            const from = getRealSeparator(document.getElementById('fromSeparator').value);
+            const to = getRealSeparator(document.getElementById('toSeparator').value);
+            if (from === to) return;
+            const textContent = Array.from(outputDiv.querySelectorAll('.output-line')).map(div => div.textContent).join(from);
+            const items = textContent.split(from).filter(item => item.trim() !== '');
+            outputDiv.innerHTML = '';
+            if (to === '\n') {
+                items.forEach(item => { const d = document.createElement('div'); d.className='output-line'; d.textContent=item.trim(); outputDiv.appendChild(d); });
+            } else {
+                const d = document.createElement('div'); d.className='output-line'; d.textContent=items.join(to); outputDiv.appendChild(d);
+            }
+        }
+        function capitalizeNames() { applyToOutput(line => line.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')); }
+        function removeSpaces() { applyToOutput(line => line.replace(/[\s　]+/g, '')); }
+        function convertToFullWidthKana() {
+            const kanaMap = { 'ｶﾞ':'ガ','ｷﾞ':'ギ','ｸﾞ':'グ','ｹﾞ':'ゲ','ｺﾞ':'ゴ','ｻﾞ':'ザ','ｼﾞ':'ジ','ｽﾞ':'ズ','ｾﾞ':'ゼ','ｿﾞ':'ゾ','ﾀﾞ':'ダ','ﾁﾞ':'ヂ','ﾂﾞ':'ヅ','ﾃﾞ':'デ','ﾄﾞ':'ド','ﾊﾞ':'バ','ﾋﾞ':'ビ','ﾌﾞ':'ブ','ﾍﾞ':'ベ','ﾎﾞ':'ボ','ﾊﾟ':'パ','ﾋﾟ':'ピ','ﾌﾟ':'プ','ﾍﾟ':'ペ','ﾎﾟ':'ポ','ｳﾞ':'ヴ','ﾜﾞ':'ヷ','ｦﾞ':'ヺ','ｱ':'ア','ｲ':'イ','ｳ':'ウ','ｴ':'エ','ｵ':'オ','ｶ':'カ','ｷ':'キ','ｸ':'ク','ｹ':'ケ','ｺ':'コ','ｻ':'サ','ｼ':'シ','ｽ':'ス','ｾ':'セ','ｿ':'ソ','ﾀ':'タ','ﾁ':'チ','ﾂ':'ツ','ﾃ':'テ','ﾄ':'ト','ﾅ':'ナ','ﾆ':'ニ','ﾇ':'ヌ','ﾈ':'ネ','ﾉ':'ノ','ﾊ':'ハ','ﾋ':'ヒ','ﾌ':'フ','ﾍ':'ヘ','ﾎ':'ホ','ﾏ':'マ','ﾐ':'ミ','ﾑ':'ム','ﾒ':'メ','ﾓ':'モ','ﾔ':'ヤ','ﾕ':'ユ','ﾖ':'ヨ','ﾗ':'ラ','ﾘ':'リ','ﾙ':'ル','ﾚ':'レ','ﾛ':'ロ','ﾜ':'ワ','ｦ':'ヲ','ﾝ':'ン','ｧ':'ァ','ｨ':'ィ','ｩ':'ゥ','ｪ':'ェ','ｫ':'ォ','ｯ':'ッ','ｬ':'ャ','ｭ':'ュ','ｮ':'ョ','｡':'。','､':'、','ｰ':'ー','｢':'「','｣':'」','･':'・' };
+            applyToOutput(line => line.replace(new RegExp('(' + Object.keys(kanaMap).join('|') + ')', 'g'), m => kanaMap[m]));
+        }
+        function convertToHalfWidthAlpha() { applyToOutput(line => line.replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))); }
+    </script>
+    <div id="footer-placeholder"></div>
+   <script src="/js/common.js" defer></script>
+</body>
+</html>
